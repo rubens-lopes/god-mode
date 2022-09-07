@@ -43,7 +43,7 @@ public record Sentence
       .Distinct()
       .ToArray();
 
-    if (answers.Length > 1) return false;
+    if (answers.Length is 0 or > 1) return false;
 
     var answer = answers.First();
     var indexedCharacters = Characters
