@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>GodMode.Domain</AssemblyName>
+        <RootNamespace>GodMode.Domain</RootNamespace>
+        <LangVersion>latestmajor</LangVersion>
+        <PackageVersion>0.1.0</PackageVersion>
+    </PropertyGroup>
+
+</Project>
