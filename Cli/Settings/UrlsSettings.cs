@@ -1,3 +1,7 @@
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable ClassNeverInstantiated.Global
+
+#pragma warning disable CS8618
 namespace GodMode.Cli.Settings;
 
 public record UrlsSettings

@@ -8,11 +8,13 @@ public class Drawer
 
   public static void DrawCrossword(Crossword crossword)
   {
-    var width = 0;
-    if (crossword.LongestSentenceAcross != null)
-      width = crossword.LongestSentenceAcross.Length * CELL_WIDTH;
+    var width = crossword.LongestAcrossSentence.Length * CELL_WIDTH;
+    var height = crossword.LongestDownSentence.Length;
+    
+    for (var line = 0; line < height; line++)
+      Console.WriteLine();
 
-    var origin = Centralize(width);
+    var origin = SetOrigin(width, height);
 
     foreach (var cell in crossword.Cells.ToArray())
       DrawCell(cell, origin);
@@ -20,8 +22,8 @@ public class Drawer
     Console.WriteLine();
   }
 
-  private static Coordinate Centralize(int width) =>
-    new((Console.WindowWidth - width) / 2, Console.CursorTop);
+  private static Coordinate SetOrigin(int width, int height) =>
+    new((Console.WindowWidth - width) / 2, Console.CursorTop - height);
 
   private static void DrawCell(Cell cell, Coordinate origin)
   {

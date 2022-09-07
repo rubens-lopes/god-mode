@@ -10,9 +10,11 @@ public record Crossword
   private readonly SentenceDictionary _down = new();
   private readonly List<Cell> _cells = new();
 
-  public Sentence? LongestSentenceAcross => _across.Any()
-    ? _across.MaxBy(pair => pair.Value.Length).Value
-    : null;
+  public Sentence LongestAcrossSentence => _across
+    .MaxBy(pair => pair.Value.Length).Value;
+
+  public Sentence LongestDownSentence => _down
+    .MaxBy(pair => pair.Value.Length).Value;
 
   public IEnumerable<Cell> Cells => _cells.AsReadOnly();
 
