@@ -46,7 +46,7 @@ public class NewspaperReader : INewsPaperReader
 
       var response = await _httpClient.GetAsync(_urlsSettings.Newspaper);
       contentStream = await response.Content.ReadAsStreamAsync();
-      await _cacheProvider.WriteAsync(Section.OmnibusList, contentStream);
+      await _cacheProvider.WriteAsync(Section.Newspaper, contentStream);
     }
 
     _parser.Load(contentStream);
