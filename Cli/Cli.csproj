@@ -8,7 +8,7 @@
         <AssemblyName>GodMode.Cli</AssemblyName>
         <RootNamespace>GodMode.Cli</RootNamespace>
         <LangVersion>latestmajor</LangVersion>
-        <PackageVersion>0.1.1</PackageVersion>
+        <PackageVersion>0.1.3</PackageVersion>
         <UserSecretsId>49629b7b-6a29-44a8-8a38-3a9f88a506f1</UserSecretsId>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>god-mode</ToolCommandName>

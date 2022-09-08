@@ -32,7 +32,7 @@ public record Crossword
 
     foreach (var cell in cells)
     {
-      if (cell.Coordinate.IsPartialSentence(cells)) AddToSentence(cell, cells);
+      if (cell.Coordinate.IsPartialSentence(cells)) AddToSentence(cell, cells, ordinal);
 
       if (cell.Coordinate.IsStartOfSentence(cells) == false) continue;
 
@@ -51,17 +51,20 @@ public record Crossword
       _down.Add(new MetaData(ordinal, cell.Coordinate.Column), new Sentence(cell.Character));
   }
 
-  private void AddToSentence(Cell cell, Cell[] cells)
+  private void AddToSentence(Cell cell, Cell[] cells, int ordinal)
   {
     if (cell.Coordinate.HasStartCell(cells))
       _across
-        .First(pair => pair.Key.LocalOrdinal == cell.Coordinate.Row)
+        .OrderByDescending(pair => pair.Key.Ordinal)
+        .First(pair => pair.Key.LocalOrdinal == cell.Coordinate.Row && pair.Key.Ordinal <= ordinal)
         .Value
         .Add(cell.Character);
 
     if (cell.Coordinate.HasTopCell(cells) == false) return;
 
-    _down.First(pair => pair.Key.LocalOrdinal == cell.Coordinate.Column)
+    _down
+      .OrderByDescending(pair => pair.Key.Ordinal)
+      .First(pair => pair.Key.LocalOrdinal == cell.Coordinate.Column && pair.Key.Ordinal <= ordinal)
       .Value
       .Add(cell.Character);
   }
@@ -75,11 +78,19 @@ public record Crossword
 
   public void Solve(string[] possibleAnswers)
   {
-    foreach (var sentence in Sentences)
-      sentence.TryToSolve(possibleAnswers);
+    int solved;
+
+    do
+    {
+      solved = Sentences.Count(sentence => sentence.IsSolved);
+
+      foreach (var sentence in Sentences.Where(sentence => sentence.IsSolved == false))
+        sentence.TryToSolve(possibleAnswers);
+    } while (solved != Sentences.Count(sentence => sentence.IsSolved));
   }
 
-  private static IEnumerable<SolvedOrNotSentence> SentencesAsSolvedOrNotStrings(SentenceDictionary dictionary) => dictionary
+  private static IEnumerable<SolvedOrNotSentence> SentencesAsSolvedOrNotStrings(SentenceDictionary dictionary) =>
+    dictionary
       .Select(pair => new SolvedOrNotSentence(pair.Key.Ordinal, pair.Value))
       .ToArray();
 }
