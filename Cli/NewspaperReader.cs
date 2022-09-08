@@ -1,5 +1,6 @@
 ﻿using GodMode.Domain.Entities;
 using Fizzler.Systems.HtmlAgilityPack;
+using GodMode.Cli.Cache;
 using GodMode.Cli.Settings;
 using HtmlAgilityPack;
 
@@ -7,7 +8,8 @@ namespace GodMode.Cli;
 
 public interface INewsPaperReader
 {
-  Task<Crossword> GetCrosswordAsync(string issue);
+  Task<Crossword?> GetCrosswordAsync(string issue);
+  Task GetMonsterAsync(string issue);
 }
 
 public class NewspaperReader : INewsPaperReader
@@ -16,33 +18,38 @@ public class NewspaperReader : INewsPaperReader
   private readonly HttpClient _httpClient;
   private readonly UrlsSettings _urlsSettings;
   private readonly GodSettings _godSettings;
-  private readonly string _cacheDirectory;
+  private readonly CacheProvider _cacheProvider;
 
   public NewspaperReader(HttpClient httpClient, UrlsSettings urlsSettings, GodSettings godSettings,
-    string cacheDirectory)
+    CacheProvider cacheProvider)
   {
     _httpClient = httpClient;
     _parser = new HtmlDocument();
     _urlsSettings = urlsSettings;
     _godSettings = godSettings;
-    _cacheDirectory = cacheDirectory;
+    _cacheProvider = cacheProvider;
   }
 
-  public async Task<Crossword> GetCrosswordAsync(string issue)
+  public async Task<Crossword?> GetCrosswordAsync(string issue)
   {
-    var cacheExists = NewspaperCacheExists(issue);
+    Stream contentStream;
+    var hasCache = _cacheProvider.Has(Section.Newspaper);
 
-    if (cacheExists == false)
+    if (hasCache)
+      contentStream = _cacheProvider.Read(Section.Newspaper);
+    else if (SettingsReader.IsDefaultDate(issue) == false)
+      return null;
+    else
     {
       if (await IsLoggedIdAsync() == false)
         await LogInAsync();
 
       var response = await _httpClient.GetAsync(_urlsSettings.Newspaper);
-      var content = await response.Content.ReadAsStringAsync();
-      await WriteNewspaperCacheAsync(issue, content);
+      contentStream = await response.Content.ReadAsStreamAsync();
+      await _cacheProvider.WriteAsync(Section.OmnibusList, contentStream);
     }
 
-    _parser.DetectEncodingAndLoad($"./{_cacheDirectory}/{issue}");
+    _parser.Load(contentStream);
 
     var cells = _parser.DocumentNode
       .QuerySelector("#cross_tbl")
@@ -67,6 +74,22 @@ public class NewspaperReader : INewsPaperReader
       .ToArray();
 
     return new Crossword(cells!);
+  }
+
+  public async Task GetMonsterAsync(string issue)
+  {
+    var hasCache = _cacheProvider.Has(Section.MonsterOfTheDay);
+
+    if (hasCache) return;
+
+    if (SettingsReader.IsDefaultDate(issue) == false) return;
+
+    if (await IsLoggedIdAsync() == false)
+      await LogInAsync();
+
+    var response = await _httpClient.GetAsync(_urlsSettings.MonsterOfTheDay);
+    var contentStream = await response.Content.ReadAsStreamAsync();
+    await _cacheProvider.WriteAsync(Section.MonsterOfTheDay, contentStream);
   }
 
   private async Task<bool> IsLoggedIdAsync()
@@ -102,25 +125,5 @@ public class NewspaperReader : INewsPaperReader
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:104.0) Gecko/20100101 Firefox/104.0");
 
     await _httpClient.SendAsync(request);
-  }
-
-  private bool NewspaperCacheExists(string issue)
-  {
-    var path = $"./{_cacheDirectory}/{issue}";
-
-    return File.Exists(path);
-  }
-
-  private async Task WriteNewspaperCacheAsync(string issue, string content)
-  {
-    var path = $"./{_cacheDirectory}/{issue}";
-
-    var exists = File.Exists(path);
-
-    if (exists)
-      File.Delete(path);
-
-    await using StreamWriter file = new(path);
-    await file.WriteAsync(content);
   }
 }

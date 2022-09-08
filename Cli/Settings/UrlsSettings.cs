@@ -10,4 +10,5 @@ public record UrlsSettings
   public string Towns { get; set; }
   public string Login { get; set; }
   public string Omnibus { get; set; }
+  public string MonsterOfTheDay { get; set; }
 }

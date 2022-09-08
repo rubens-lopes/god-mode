@@ -8,20 +8,24 @@
         <AssemblyName>GodMode.Cli</AssemblyName>
         <RootNamespace>GodMode.Cli</RootNamespace>
         <LangVersion>latestmajor</LangVersion>
-        <PackageVersion>0.1.0</PackageVersion>
-      <UserSecretsId>49629b7b-6a29-44a8-8a38-3a9f88a506f1</UserSecretsId>
-  </PropertyGroup>
+        <PackageVersion>0.1.1</PackageVersion>
+        <UserSecretsId>49629b7b-6a29-44a8-8a38-3a9f88a506f1</UserSecretsId>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>god-mode</ToolCommandName>
+        <PackageOutputPath>./nupkg</PackageOutputPath>
+    </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Domain\Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Fizzler.Systems.HtmlAgilityPack" Version="1.2.1" />
-      <PackageReference Include="HtmlAgilityPack" Version="1.11.45" />
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
-      <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-      <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+        <PackageReference Include="Ardalis.SmartEnum" Version="2.1.0" />
+        <PackageReference Include="Fizzler.Systems.HtmlAgilityPack" Version="1.2.1" />
+        <PackageReference Include="HtmlAgilityPack" Version="1.11.45" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     </ItemGroup>
 
 </Project>

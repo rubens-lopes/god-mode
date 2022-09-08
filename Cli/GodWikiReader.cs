@@ -1,4 +1,5 @@
 ﻿using Fizzler.Systems.HtmlAgilityPack;
+using GodMode.Cli.Cache;
 using GodMode.Cli.Settings;
 using HtmlAgilityPack;
 
@@ -11,30 +12,36 @@ public interface IGodWikiReader
 
 public class GodWikiReader : IGodWikiReader
 {
-  private const string OmnibusExtension = "omnibus";
-
   private readonly HttpClient _httpClient;
   private readonly HtmlDocument _parser;
   private readonly UrlsSettings _urlsSettings;
-  private readonly string _cacheDirectory;
+  private readonly CacheProvider _cacheProvider;
 
-  public GodWikiReader(HttpClient httpClient, UrlsSettings urlsSettings, string cacheDirectory)
+  public GodWikiReader(HttpClient httpClient, UrlsSettings urlsSettings, CacheProvider cacheProvider)
   {
     _httpClient = httpClient;
     _parser = new HtmlDocument();
     _urlsSettings = urlsSettings;
-    _cacheDirectory = cacheDirectory;
+    _cacheProvider = cacheProvider;
   }
 
   public async Task<IEnumerable<string>> GetOmnibusListAsync(string issue)
   {
-    (bool success, IEnumerable<string> list) = await TryGetOmnibusListCacheAsync(issue);
+    Stream contentStream;
+    var hasCache = _cacheProvider.Has(Section.OmnibusList);
 
-    if (success) return list;
+    if (hasCache)
+      contentStream = _cacheProvider.Read(Section.OmnibusList);
+    else if (SettingsReader.IsDefaultDate(issue) == false)
+      return Array.Empty<string>();
+    else
+    {
+      var response = await _httpClient.GetAsync(_urlsSettings.Omnibus);
+      contentStream = await response.Content.ReadAsStreamAsync();
+      await _cacheProvider.WriteAsync(Section.OmnibusList, contentStream);
+    }
 
-    var response = await _httpClient.GetAsync(_urlsSettings.Omnibus);
-
-    _parser.LoadHtml(await response.Content.ReadAsStringAsync());
+    _parser.Load(contentStream);
 
     var omnibusList = _parser.DocumentNode
       .QuerySelectorAll("#list-S, #list-E, #list-M, #list-A")
@@ -42,48 +49,30 @@ public class GodWikiReader : IGodWikiReader
       .Select(itemNode => itemNode.InnerText)
       .ToArray();
 
-    var result = (await GetTownsAsync())
+    var result = (await GetTownsAsync(issue))
       .Concat(omnibusList)
       .ToArray();
-
-    await WriteOmnibusListCacheAsync(issue, result);
 
     return result;
   }
 
-  private async Task<(bool sucsses, IEnumerable<string> list)> TryGetOmnibusListCacheAsync(string issue)
+  private async Task<string[]> GetTownsAsync(string issue)
   {
-    var path = $"./{_cacheDirectory}/{issue}.{OmnibusExtension}";
+    Stream contentStream;
+    var hasCache = _cacheProvider.Has(Section.Towns);
 
-    var exists = File.Exists(path);
+    if (hasCache)
+      contentStream = _cacheProvider.Read(Section.Towns);
+    else if (SettingsReader.IsDefaultDate(issue) == false)
+      return Array.Empty<string>();
+    else
+    {
+      var response = await _httpClient.GetAsync(_urlsSettings.Towns);
+      contentStream = await response.Content.ReadAsStreamAsync();
+      await _cacheProvider.WriteAsync(Section.Towns, contentStream);
+    }
 
-    if (exists == false) return (false, Array.Empty<string>());
-
-    var list = await File.ReadAllLinesAsync(path);
-
-    return (true, list);
-  }
-
-  private async Task WriteOmnibusListCacheAsync(string issue, IEnumerable<string> list)
-  {
-    var path = $"./{_cacheDirectory}/{issue}.{OmnibusExtension}";
-
-    var exists = File.Exists(path);
-
-    if (exists)
-      File.Delete(path);
-
-    await using StreamWriter file = new(path);
-
-    foreach (string line in list)
-      await file.WriteLineAsync(line);
-  }
-
-  private async Task<string[]> GetTownsAsync()
-  {
-    var response = await _httpClient.GetAsync(_urlsSettings.Towns);
-
-    _parser.LoadHtml(await response.Content.ReadAsStringAsync());
+    _parser.Load(contentStream);
 
     return _parser.DocumentNode
       .QuerySelectorAll("table.wikitable.sortable tbody th[scope=\"row\"] a")
