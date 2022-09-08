@@ -51,4 +51,18 @@ public class SentenceTests
       .Should()
       .BeFalse();
   }
+  
+  [Fact]
+  public void TryToSolve_should_return_false_if_it_has_no_answer()
+  {
+    Character[] characters = {new('H'), new(), new('l'), new(), new(), new(' '), new('w'), new('o'), new(), new('d')};
+
+    var sentence = new Sentence(characters);
+
+    var result = sentence.TryToSolve(Array.Empty<string>());
+
+    result
+      .Should()
+      .BeFalse();
+  }
 }
