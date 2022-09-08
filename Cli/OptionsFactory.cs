@@ -20,7 +20,7 @@ public static class OptionsFactory
 
       var validDate = DateTime.TryParse(result.Tokens.Single().Value, out var issueDate);
 
-      if (validDate == false)
+      if (validDate == false || issueDate > defaultArgument)
       {
         Util.WriteWarning($"Issue date invalid, using default instead ({argument})...");
         return argument;
