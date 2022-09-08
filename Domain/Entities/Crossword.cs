@@ -70,9 +70,16 @@ public record Crossword
     .Concat(_down.Values)
     .ToArray();
 
+  public IEnumerable<SolvedOrNotSentence> AcrossSentences => SentencesAsSolvedOrNotStrings(_across);
+  public IEnumerable<SolvedOrNotSentence> DownSentences => SentencesAsSolvedOrNotStrings(_down);
+
   public void Solve(string[] possibleAnswers)
   {
     foreach (var sentence in Sentences)
       sentence.TryToSolve(possibleAnswers);
   }
+
+  private static IEnumerable<SolvedOrNotSentence> SentencesAsSolvedOrNotStrings(SentenceDictionary dictionary) => dictionary
+      .Select(pair => new SolvedOrNotSentence(pair.Key.Ordinal, pair.Value))
+      .ToArray();
 }
