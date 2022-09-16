@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.Runtime.CompilerServices;
 using GodMode.Cli;
 using GodMode.Cli.Cache;
 using GodMode.Cli.Settings;
@@ -18,17 +19,13 @@ crosswordCommand.SetHandler(async issue => await SolveCrossword(issue), issueOpt
 
 var knowYourMonsterCommand = new Command("monster-of-the-day", "Try to find out who is the monster of the day.");
 knowYourMonsterCommand.AddAlias("md");
-knowYourMonsterCommand.SetHandler(async issue =>
-{
-  var cacheProvider = new CacheProvider(cacheDirectory, issue);
-  var newspaperReader = new NewspaperReader(httpClient, urlsSettings, godSettings, cacheProvider);
-  await newspaperReader.GetMonsterAsync(issue);
-}, issueOption);
+knowYourMonsterCommand.SetHandler(async issue => await SolveMonsterOfTheDay(issue), issueOption);
 
 rootCommand.AddCommand(crosswordCommand);
 rootCommand.AddCommand(knowYourMonsterCommand);
 
-rootCommand.SetHandler(async issue => await SolveCrossword(issue), issueOption);
+rootCommand.SetHandler(async issue => await Task
+  .WhenAll(SolveCrossword(issue), SolveMonsterOfTheDay(issue)), issueOption);
 
 return await rootCommand.InvokeAsync(args);
 
@@ -49,4 +46,11 @@ async Task SolveCrossword(string issue)
 
   crossword.Solve((await godWikiReader.GetOmnibusListAsync(issue)).ToArray());
   Drawer.DrawCrossword(crossword);
+}
+
+async Task SolveMonsterOfTheDay(string issue)
+{
+  var cacheProvider = new CacheProvider(cacheDirectory, issue);
+  var newspaperReader = new NewspaperReader(httpClient, urlsSettings, godSettings, cacheProvider);
+  await newspaperReader.GetMonsterAsync(issue);
 }
