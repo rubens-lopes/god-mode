@@ -1,16 +1,25 @@
 ﻿using System.CommandLine;
-using System.Runtime.CompilerServices;
 using GodMode.Cli;
 using GodMode.Cli.Cache;
 using GodMode.Cli.Settings;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var urlsSettings = SettingsReader.GetSection<UrlsSettings>("urls");
-var godSettings = SettingsReader.GetSection<GodSettings>("god");
-var cacheDirectory = SettingsReader.Get<string>("cacheDirectory");
-var httpClient = new HttpClient();
+using IHost host = Host.CreateDefaultBuilder(args)
+  .ConfigureServices((_, services) => services
+    .AddSingleton<HttpClient, HttpClient>()
+    .AddScoped<IGodWikiReader, GodWikiReader>()
+    .AddScoped<ICacheProvider, CacheProvider>()
+    .AddScoped<ISettingsReader, SettingsReader>()
+    .AddScoped<INewspaperReader, NewspaperReader>()
+  )
+  .Build();
+
+var serviceProvider = host.Services.CreateAsyncScope().ServiceProvider;
+var settingsReader = serviceProvider.GetRequiredService<ISettingsReader>();
 
 var rootCommand = new RootCommand("True GodMode for GV");
-var issueOption = OptionsFactory.CreateIssueOption();
+var issueOption = new OptionsFactory(settingsReader).CreateIssueOption();
 rootCommand.AddGlobalOption(issueOption);
 
 var crosswordCommand = new Command("crossword", "Try to solve the crossword and print the result on screen.");
@@ -31,10 +40,8 @@ return await rootCommand.InvokeAsync(args);
 
 async Task SolveCrossword(string issue)
 {
-  var cacheProvider = new CacheProvider(cacheDirectory, issue);
-
-  var godWikiReader = new GodWikiReader(httpClient, urlsSettings, cacheProvider);
-  var newspaperReader = new NewspaperReader(httpClient, urlsSettings, godSettings, cacheProvider);
+  var godWikiReader = serviceProvider.GetRequiredService<IGodWikiReader>();
+  var newspaperReader = serviceProvider.GetRequiredService<INewspaperReader>();
 
   var crossword = await newspaperReader.GetCrosswordAsync(issue);
 
@@ -50,7 +57,6 @@ async Task SolveCrossword(string issue)
 
 async Task SolveMonsterOfTheDay(string issue)
 {
-  var cacheProvider = new CacheProvider(cacheDirectory, issue);
-  var newspaperReader = new NewspaperReader(httpClient, urlsSettings, godSettings, cacheProvider);
+  var newspaperReader = serviceProvider.GetRequiredService<INewspaperReader>();
   await newspaperReader.GetMonsterAsync(issue);
 }

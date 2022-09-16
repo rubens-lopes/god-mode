@@ -6,38 +6,41 @@ using HtmlAgilityPack;
 
 namespace GodMode.Cli;
 
-public interface INewsPaperReader
+public interface INewspaperReader
 {
   Task<Crossword?> GetCrosswordAsync(string issue);
   Task GetMonsterAsync(string issue);
 }
 
-public class NewspaperReader : INewsPaperReader
+public class NewspaperReader : INewspaperReader
 {
   private readonly HtmlDocument _parser;
   private readonly HttpClient _httpClient;
   private readonly UrlsSettings _urlsSettings;
   private readonly GodSettings _godSettings;
-  private readonly CacheProvider _cacheProvider;
+  private readonly ICacheProvider _cacheProvider;
+  private readonly ISettingsReader _settingsReader;
 
-  public NewspaperReader(HttpClient httpClient, UrlsSettings urlsSettings, GodSettings godSettings,
-    CacheProvider cacheProvider)
+  public NewspaperReader(HttpClient httpClient, 
+    ISettingsReader settingsReader,
+    ICacheProvider cacheProvider)
   {
     _httpClient = httpClient;
     _parser = new HtmlDocument();
-    _urlsSettings = urlsSettings;
-    _godSettings = godSettings;
+    _urlsSettings = settingsReader.GetUrlsSettings();
+    _godSettings = settingsReader.GetGodSettings();
+    _settingsReader = settingsReader;
     _cacheProvider = cacheProvider;
   }
 
   public async Task<Crossword?> GetCrosswordAsync(string issue)
   {
     Stream contentStream;
-    var hasCache = _cacheProvider.Has(Section.Newspaper);
+    var hasCache = _cacheProvider.Has(issue, Section.Newspaper);
 
     if (hasCache)
-      contentStream = _cacheProvider.Read(Section.Newspaper);
-    else if (SettingsReader.IsDefaultDate(issue) == false)
+      contentStream = _cacheProvider.Read(issue, Section.Newspaper);
+    else if (_settingsReader.IsDefaultDate(issue) == false)
       return null;
     else
     {
@@ -46,7 +49,7 @@ public class NewspaperReader : INewsPaperReader
 
       var response = await _httpClient.GetAsync(_urlsSettings.Newspaper);
       contentStream = await response.Content.ReadAsStreamAsync();
-      await _cacheProvider.WriteAsync(Section.Newspaper, contentStream);
+      await _cacheProvider.WriteAsync(issue, Section.Newspaper, contentStream);
     }
 
     _parser.Load(contentStream);
@@ -78,18 +81,18 @@ public class NewspaperReader : INewsPaperReader
 
   public async Task GetMonsterAsync(string issue)
   {
-    var hasCache = _cacheProvider.Has(Section.MonsterOfTheDay);
+    var hasCache = _cacheProvider.Has(issue, Section.MonsterOfTheDay);
 
     if (hasCache) return;
 
-    if (SettingsReader.IsDefaultDate(issue) == false) return;
+    if (_settingsReader.IsDefaultDate(issue) == false) return;
 
     if (await IsLoggedIdAsync() == false)
       await LogInAsync();
 
     var response = await _httpClient.GetAsync(_urlsSettings.MonsterOfTheDay);
     var contentStream = await response.Content.ReadAsStreamAsync();
-    await _cacheProvider.WriteAsync(Section.MonsterOfTheDay, contentStream);
+    await _cacheProvider.WriteAsync(issue, Section.MonsterOfTheDay, contentStream);
   }
 
   private async Task<bool> IsLoggedIdAsync()

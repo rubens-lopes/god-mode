@@ -2,14 +2,25 @@
 
 namespace GodMode.Cli.Settings;
 
-public static class SettingsReader
+public interface ISettingsReader
 {
-  public static bool IsDefaultDate(string date) => GetDefaultDate() == date;
+  bool IsDefaultDate(string date);
+  string GetDefaultDate();
+  string AsDefaultDate(DateTime issueDate);
+  public bool IsLesserOrEqualThanDefaultDate(DateTime date);
+  public UrlsSettings GetUrlsSettings();
+  public GodSettings GetGodSettings();
+  public string GetCacheDirectory();
+}
 
-  public static bool IsLesserOrEqualThanDefaultDate(DateTime date) =>
+public sealed class SettingsReader : ISettingsReader
+{
+  public bool IsDefaultDate(string date) => GetDefaultDate() == date;
+
+  public bool IsLesserOrEqualThanDefaultDate(DateTime date) =>
     String.CompareOrdinal(AsDefaultDate(date), GetDefaultDate()) <= 0;
 
-  public static string GetDefaultDate()
+  public string GetDefaultDate()
   {
     var defaultDate = DateTime.Now;
     if (defaultDate <= new DateTime(defaultDate.Year, defaultDate.Month, defaultDate.Day, 18, 5, 0))
@@ -17,11 +28,17 @@ public static class SettingsReader
 
     return AsDefaultDate(defaultDate);
   }
+  public string AsDefaultDate(DateTime issueDate) => $"{issueDate:yyyy-MM-dd}";
 
-  public static T Get<T>(string value) => GetSettings()
+  public UrlsSettings GetUrlsSettings() => GetSection<UrlsSettings>("urls");
+
+  public GodSettings GetGodSettings() => GetSection<GodSettings>("god");
+  public string GetCacheDirectory() => Get<string>("cacheDirectory");
+
+  private static T Get<T>(string value) => GetSettings()
     .GetValue<T>(value);
 
-  public static T GetSection<T>(string section) => GetSettings()
+  private static T GetSection<T>(string section) => GetSettings()
     .GetSection(section)
     .Get<T>();
 
@@ -38,6 +55,4 @@ public static class SettingsReader
 
     return settings;
   }
-
-  public static string AsDefaultDate(DateTime issueDate) => $"{issueDate:yyyy-MM-dd}";
 }

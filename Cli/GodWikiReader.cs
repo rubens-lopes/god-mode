@@ -15,30 +15,32 @@ public class GodWikiReader : IGodWikiReader
   private readonly HttpClient _httpClient;
   private readonly HtmlDocument _parser;
   private readonly UrlsSettings _urlsSettings;
-  private readonly CacheProvider _cacheProvider;
+  private readonly ICacheProvider _cacheProvider;
+  private readonly ISettingsReader _settingsReader;
 
-  public GodWikiReader(HttpClient httpClient, UrlsSettings urlsSettings, CacheProvider cacheProvider)
+  public GodWikiReader(HttpClient httpClient, ISettingsReader settingsReader, ICacheProvider cacheProvider)
   {
     _httpClient = httpClient;
     _parser = new HtmlDocument();
-    _urlsSettings = urlsSettings;
+    _urlsSettings = settingsReader.GetUrlsSettings();
+    _settingsReader = settingsReader;
     _cacheProvider = cacheProvider;
   }
 
   public async Task<IEnumerable<string>> GetOmnibusListAsync(string issue)
   {
     Stream contentStream;
-    var hasCache = _cacheProvider.Has(Section.OmnibusList);
+    var hasCache = _cacheProvider.Has(issue, Section.OmnibusList);
 
     if (hasCache)
-      contentStream = _cacheProvider.Read(Section.OmnibusList);
-    else if (SettingsReader.IsDefaultDate(issue) == false)
+      contentStream = _cacheProvider.Read(issue, Section.OmnibusList);
+    else if (_settingsReader.IsDefaultDate(issue) == false)
       return Array.Empty<string>();
     else
     {
       var response = await _httpClient.GetAsync(_urlsSettings.Omnibus);
       contentStream = await response.Content.ReadAsStreamAsync();
-      await _cacheProvider.WriteAsync(Section.OmnibusList, contentStream);
+      await _cacheProvider.WriteAsync(issue, Section.OmnibusList, contentStream);
     }
 
     _parser.Load(contentStream);
@@ -59,17 +61,17 @@ public class GodWikiReader : IGodWikiReader
   private async Task<string[]> GetTownsAsync(string issue)
   {
     Stream contentStream;
-    var hasCache = _cacheProvider.Has(Section.Towns);
+    var hasCache = _cacheProvider.Has(issue, Section.Towns);
 
     if (hasCache)
-      contentStream = _cacheProvider.Read(Section.Towns);
-    else if (SettingsReader.IsDefaultDate(issue) == false)
+      contentStream = _cacheProvider.Read(issue, Section.Towns);
+    else if (_settingsReader.IsDefaultDate(issue) == false)
       return Array.Empty<string>();
     else
     {
       var response = await _httpClient.GetAsync(_urlsSettings.Towns);
       contentStream = await response.Content.ReadAsStreamAsync();
-      await _cacheProvider.WriteAsync(Section.Towns, contentStream);
+      await _cacheProvider.WriteAsync(issue, Section.Towns, contentStream);
     }
 
     _parser.Load(contentStream);
